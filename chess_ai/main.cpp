@@ -48,7 +48,7 @@ int main()
     // parameters
     int width = 512;
     int height = 512;
-    float psize = (float)width / 8.0f; // piece size
+    float psize = (float)width / 8.0f; // square size
     float scaled = 0.9; // how much to scale down the pieces
 
     // render window
@@ -94,8 +94,11 @@ int main()
             // dragging
             if (e.type == Event::MouseButtonPressed && e.key.code == Mouse::Left)
             {
+                // GlobalBounds of sprite is slightly less than box size (due to rescaling of sprites)
+                // Want to find center of square that mousePos is in so that clicking anywhere on the square picks up the piece on that square
+                Vector2f centerSquare = Vector2f(float(int(mousePos.x / psize) + 0.5) * psize, float(int(mousePos.y / psize) + 0.5) * psize);
                 for (int i = 0; i < 32; i++) {
-                    if (p[i].getGlobalBounds().contains(mousePos.x, mousePos.y)) {
+                    if (p[i].getGlobalBounds().contains(centerSquare)) {
                         moving = 1;
                         pmoving = i;
                         //offx = mousePos.x - piece.getPosition().x;
@@ -108,8 +111,6 @@ int main()
 
             if (e.type == Event::MouseButtonReleased && e.key.code == Mouse::Left) {
                 moving = 0;
-                // position of center of piece
-                
                 Vector2f pos = p[pmoving].getPosition();
                 Vector2f nPos = Vector2f(float(int(pos.x / psize)+0.5) * psize, float(int(pos.y / psize)+0.5) * psize);
                 p[pmoving].setPosition(nPos);
@@ -132,7 +133,7 @@ int main()
         window.draw(board);
         for (int i = 0; i < 32; i++) {
             window.draw(p[i]);
-            window.draw(boundingBox(p[i])); // draw bounding box around pieces
+            //window.draw(boundingBox(p[i])); // draw bounding box around pieces
         }
         //window.draw(c);
         window.display();
