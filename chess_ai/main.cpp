@@ -55,12 +55,11 @@ int main()
     int height = 512;
     float psize = (float)width / 8.0f; // square size
     float scaled = 0.9; // how much to scale down the pieces
-
     Vector2i oldCoord, newCoord;
 
     // render window
     RenderWindow window(VideoMode(width, height), "Chess", Style::Close | Style::Resize);
- 
+    
     // Adding images and sprites
     Texture pieces, boardi;
     pieces.loadFromFile("images/pieces2.png");
@@ -90,7 +89,6 @@ int main()
     {
         Vector2i mouse = Mouse::getPosition(window);
         Vector2i mousePos = Vector2i(window.mapPixelToCoords(mouse)); // fixes mouse position when rescaling window
-
         Event e;
         while (window.pollEvent(e))
         {
@@ -99,56 +97,48 @@ int main()
             }
 
             // dragging
-            if (e.type == Event::MouseButtonPressed && e.key.code == Mouse::Left)
+            if (e.type == Event::MouseButtonPressed && e.key.code == Mouse::Left && moving==0)
             {
-                // GlobalBounds of sprite is slightly less than box size (due to rescaling of sprites)
-                // Want to find center of square that mousePos is in so that clicking anywhere on the square picks up the piece on that square
-                //Vector2f centerSquare = Vector2f(float(int(mousePos.x / psize) + 0.5) * psize, float(int(mousePos.y / psize) + 0.5) * psize);
-                //for (int i = 0; i < 32; i++) {
-                //    if (p[i].getGlobalBounds().contains(centerSquare)) {
-                //        moving = 1;
-                //        pmoving = i;
-                //        oldCoord = Vector2i(int(mousePos.x / psize), int(mousePos.y / psize));
-                //        // remove piece from board
-                //        pboard[oldCoord.x][oldCoord.y] = 0;
-                //        //offx = mousePos.x - piece.getPosition().x;
-                //        //offy = mousePos.y - piece.getPosition().y;
-                //    }
-                //}
                 Vector2i clickCoord = Vector2i(int(mousePos.x / psize), int(mousePos.y / psize));
 
                 pmoving = pboard[clickCoord.x][clickCoord.y];
-                printf("moving piece at %i %i", clickCoord.x, clickCoord.y);
+                //printf("moving piece at %i %i", clickCoord.x, clickCoord.y);
 
                 if (pmoving != 0) {
-                    printf("moving");
+                    //printf("moving");
                     moving = 1;
-                    oldCoord = Vector2i(int(mousePos.x / psize), int(mousePos.y / psize));
+                    oldCoord = clickCoord;
+                    
                     // remove piece from board
                     pboard[oldCoord.x][oldCoord.y] = 0;
                     //offx = mousePos.x - piece.getPosition().x;
                     //offy = mousePos.y - piece.getPosition().y;
-
-                }
-
-                
-                
+                }  
             }
 
             if (e.type == Event::MouseButtonReleased && e.key.code == Mouse::Left && (pmoving !=0)) {
-                printf("mouserelease\n");
+                //printf("mouserelease\n");
                 moving = 0;
                 Vector2f pos = pmoving->getPosition();
                 Vector2f newPos = Vector2f(float(int(pos.x / psize) + 0.5) * psize, float(int(pos.y / psize) + 0.5) * psize);
                 newCoord = Vector2i(int(pos.x / psize), int(pos.y / psize));
 
-                //remove old piece on button release coordinate and add new piece to pboard
-                if (pboard[newCoord.x][newCoord.y] != 0) {
-                    printf("removing piece at x=%i, y=%i", newCoord.x, newCoord.y);
-                    pboard[newCoord.x][newCoord.y]->setPosition(-100, -100); // move piece in new position away from board
+                // only move to piece to new coordinate if newCoord is in window
+                if ((mousePos.x >= window.getSize().x) || (mousePos.x < 0) || (mousePos.y >= window.getSize().y) || (mousePos.y < 0)) { // outside window
+                    //printf("%i, %i\n", oldCoord.x, oldCoord.y);
+                    pmoving->setPosition(float((oldCoord.x + 0.5)) * psize, float((oldCoord.y + 0.5)) * psize);
+                    pboard[oldCoord.x][oldCoord.y] = pmoving; 
                 }
-                pmoving->setPosition(newPos);
-                pboard[newCoord.x][newCoord.y] = pmoving;
+                else {
+                    //remove old piece on button release coordinate and add new piece to pboard
+                    if (pboard[newCoord.x][newCoord.y] != 0) {
+                        //printf("removing piece at x=%i, y=%i", newCoord.x, newCoord.y);
+                        pboard[newCoord.x][newCoord.y]->setPosition(-100, -100); // move piece in new position away from board
+                    }
+                    pmoving->setPosition(newPos);
+                    pboard[newCoord.x][newCoord.y] = pmoving;
+
+                }
             }
         }
 
@@ -169,6 +159,9 @@ int main()
         for (int i = 0; i < 32; i++) {
             window.draw(p[i]);
             //window.draw(boundingBox(p[i])); // draw bounding box around pieces
+        }
+        if (pmoving != 0) { // make sure piece that is moving is drawn ontop of the other pieces
+            window.draw(*pmoving);
         }
         //window.draw(c);
         window.display();
