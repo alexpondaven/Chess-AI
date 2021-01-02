@@ -4,6 +4,8 @@ using namespace sf;
 
 
 Sprite p[32];
+Sprite* pboard[8][8] = { 0 }; // 2d array of addresses for each piece to know each location
+std::string ptypes[32] = { "" }; // corresponding piece of sprite in p
 
 // numbers on board represent offset on figure
 int aboard[8][8] = {{-5,-4,-3,-2,-1,-3,-4,-5},
@@ -15,10 +17,11 @@ int aboard[8][8] = {{-5,-4,-3,-2,-1,-3,-4,-5},
                     { 6, 6, 6, 6, 6, 6, 6, 6},
                     { 5, 4, 3, 2, 1, 3, 4, 5} };
 
-Sprite* pboard[8][8] = { 0 }; // 2d array of addresses for each piece to know each location
+
 
 void loadPos(float sw, float sh, float psize, float scaled) {
     int count = 0;
+    std::string initial_types = "KQBNR"; // initial types of pieces (from image order)
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             int n = aboard[i][j];
