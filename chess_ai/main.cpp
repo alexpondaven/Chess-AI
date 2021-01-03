@@ -5,7 +5,7 @@ using namespace sf;
 
 Sprite p[32];
 Sprite* pboard[8][8] = { 0 }; // 2d array of addresses for each piece to know each location
-std::string ptypes[32] = { "" }; // corresponding piece of sprite in p
+std::string ptypes[8][8] = { "" }; // corresponding type of sprite in pboard
 
 // numbers on board represent offset on figure
 int aboard[8][8] = {{-5,-4,-3,-2,-1,-3,-4,-5},
@@ -21,7 +21,7 @@ int aboard[8][8] = {{-5,-4,-3,-2,-1,-3,-4,-5},
 
 void loadPos(float sw, float sh, float psize, float scaled) {
     int count = 0;
-    std::string initial_types = "KQBNR"; // initial types of pieces (from image order)
+    std::string initial_types = "KQBNRPprnbqk"; // initial types of pieces (from image order)
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             int n = aboard[i][j];
@@ -33,6 +33,9 @@ void loadPos(float sw, float sh, float psize, float scaled) {
             p[count].setScale( (psize / sw) * scaled, (psize / sh) * scaled);
             p[count].setPosition(psize * (j + 0.5), psize * (i + 0.5));
             pboard[j][i] = &p[count];
+            // store piece type in ptypes array
+            if (n > 0) ptypes[j][i] = initial_types[n - 1]; // white pieces are uppercase (beginning of initial_types string)
+            else if (n<0) ptypes[j][i] = initial_types[12 + n]; // black pieces are lowercase (end of initial_types string)
             count++;
         }
     }
@@ -102,18 +105,20 @@ int main()
             // dragging
             if (e.type == Event::MouseButtonPressed && e.key.code == Mouse::Left && moving==0)
             {
+                // Update pmoving with address to piece that is being dragged
                 Vector2i clickCoord = Vector2i(int(mousePos.x / psize), int(mousePos.y / psize));
-
                 pmoving = pboard[clickCoord.x][clickCoord.y];
                 //printf("moving piece at %i %i", clickCoord.x, clickCoord.y);
 
-                if (pmoving != 0) {
+                if (pmoving != 0) { // if mouse was pressed on piece
                     //printf("moving");
                     moving = 1;
-                    oldCoord = clickCoord;
+                    oldCoord = clickCoord; // store previous position of piece (coord from which it was picked up)
                     
                     // remove piece from board
                     pboard[oldCoord.x][oldCoord.y] = 0;
+
+
                     //offx = mousePos.x - piece.getPosition().x;
                     //offy = mousePos.y - piece.getPosition().y;
                 }  
@@ -140,8 +145,17 @@ int main()
                     }
                     pmoving->setPosition(newPos);
                     pboard[newCoord.x][newCoord.y] = pmoving;
+                    //update type of piece on new square and old square
+                    ptypes[newCoord.x][newCoord.y] = ptypes[oldCoord.x][oldCoord.y];
+                    // reset old square only if it is different from new square
+                    if (newCoord != oldCoord) {
+                        ptypes[oldCoord.x][oldCoord.y] = "";
+                    }
+                    printf("type of piece moved to %i, %i is ", newCoord.x, newCoord.y);
+                    std::cout << ptypes[newCoord.x][newCoord.y] << std::endl;
 
                 }
+                pmoving = 0; // reset pmoving to 0
             }
         }
 
