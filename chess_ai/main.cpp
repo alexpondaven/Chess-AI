@@ -1,5 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <ctype.h>
 using namespace sf;
 
 
@@ -52,6 +53,18 @@ RectangleShape boundingBox(Sprite s) {
     return rect;
 }
 
+bool validMove(Sprite* pmoving,Vector2i oldCoord, Vector2i newCoord) {
+    Sprite* capturePiece = pboard[newCoord.x][newCoord.y]; // piece on new square that may be captured
+    std::string attackType = ptypes[oldCoord.x][oldCoord.y]; // moving piece type
+    std::string captureType = ptypes[newCoord.x][newCoord.y]; // type of piece being attacked
+
+    // if empty or opposite colour (not both uppercase or both lowercase in ptypes array) => valid move
+    if ((capturePiece == 0) || (isupper(attackType[0]) ^ isupper(captureType[0]))) {
+        return 1;
+    }
+    return 0;
+}
+
 
 
 int main()
@@ -102,7 +115,7 @@ int main()
                 window.close();
             }
 
-            // dragging
+            // event of mouse button being pressed
             if (e.type == Event::MouseButtonPressed && e.key.code == Mouse::Left && moving==0)
             {
                 // Update pmoving with address to piece that is being dragged
@@ -123,7 +136,7 @@ int main()
                     //offy = mousePos.y - piece.getPosition().y;
                 }  
             }
-
+            // event of mouse button being released
             if (e.type == Event::MouseButtonReleased && e.key.code == Mouse::Left && (pmoving !=0)) {
                 //printf("mouserelease\n");
                 moving = 0;
@@ -132,14 +145,23 @@ int main()
                 newCoord = Vector2i(int(pos.x / psize), int(pos.y / psize));
 
                 // only move to piece to new coordinate if newCoord is in window
-                if ((mousePos.x >= window.getSize().x) || (mousePos.x < 0) || (mousePos.y >= window.getSize().y) || (mousePos.y < 0)) { // outside window
+                bool outOfBounds = (mousePos.x >= window.getSize().x) || (mousePos.x < 0) || (mousePos.y >= window.getSize().y) || (mousePos.y < 0); // outside window
+                bool valid = 0;
+                if (!outOfBounds) { // need to check this or else newCoord is not a valid square
+                    valid = validMove(pmoving, oldCoord, newCoord);
+                }
+                
+                if (!valid || outOfBounds) { // move piece back to old square
                     //printf("%i, %i\n", oldCoord.x, oldCoord.y);
+
+                    // place pmoving (moving piece) back to where it was before dragging
                     pmoving->setPosition(float((oldCoord.x + 0.5)) * psize, float((oldCoord.y + 0.5)) * psize);
                     pboard[oldCoord.x][oldCoord.y] = pmoving; 
                 }
-                else {
+                else { // move piece to new square
+                    // make decision about 
                     //remove old piece on button release coordinate and add new piece to pboard
-                    if (pboard[newCoord.x][newCoord.y] != 0) {
+                    if (pboard[newCoord.x][newCoord.y] != 0) { // remove what was on the new square (if not empty)
                         //printf("removing piece at x=%i, y=%i", newCoord.x, newCoord.y);
                         pboard[newCoord.x][newCoord.y]->setPosition(-100, -100); // move piece in new position away from board
                     }
