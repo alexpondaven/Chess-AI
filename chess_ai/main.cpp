@@ -53,15 +53,37 @@ RectangleShape boundingBox(Sprite s) {
     return rect;
 }
 
-bool validMove(Sprite* pmoving,Vector2i oldCoord, Vector2i newCoord) {
+
+bool validMove(Sprite* pmoving,Vector2i oldCoord, Vector2i newCoord) { // decide if move is valid
+    // helper variables for deciding if move is valid
     Sprite* capturePiece = pboard[newCoord.x][newCoord.y]; // piece on new square that may be captured
     std::string attackType = ptypes[oldCoord.x][oldCoord.y]; // moving piece type
     std::string captureType = ptypes[newCoord.x][newCoord.y]; // type of piece being attacked
 
-    // if empty or opposite colour (not both uppercase or both lowercase in ptypes array) => valid move
-    if ((capturePiece == 0) || (isupper(attackType[0]) ^ isupper(captureType[0]))) {
-        return 1;
+    bool isDiagonal = (abs(oldCoord.x - newCoord.x) == abs(oldCoord.y - newCoord.y)); // diagonal move if x and y offset is same
+    
+    
+
+    // piece specific calculations
+    bool validDir = 0; // is the piece being moved as it should
+    bool isHop = 0;// is there a piece between the old and new position (i.e. is piece "hopping" over another)
+    if (attackType == "R" || attackType == "r") { // rook moving
+        validDir = !isDiagonal;
+         
     }
+    else if (attackType == "B" || attackType == "b") { // bishop moving
+        validDir = isDiagonal;
+    }
+    
+    // decide if it is a valid move
+    if (capturePiece == 0) { // moved to empty square
+        return validDir;
+    }
+    else if (capturePiece != 0) { // attacking a piece
+        // piece must be moving correctly and be attacking the opposite colour (not both uppercase or both lowercase in ptypes array)
+        return validDir && (isupper(attackType[0]) ^ isupper(captureType[0]));
+    }
+    
     return 0;
 }
 
