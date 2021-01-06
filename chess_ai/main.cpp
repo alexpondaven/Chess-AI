@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <ctype.h>
+#include <vector>
 using namespace sf;
 
 
@@ -53,6 +54,14 @@ RectangleShape boundingBox(Sprite s) {
     return rect;
 }
 
+// update array of pieces that are protected (and if king is in check)
+// could actually make a valid moves list for each piece (thinking may be needed for hidden checks (and any ai))
+// for each piece= a list of all possible moves 
+// for each Sprite* need 
+
+
+// need to see what is defended (so king can't attack), if king is in check, if move is valid, if move hopped over a piece
+// defending only happens if king is attacking (so could just call isDefended function on capturePiece to determine if it is defended
 
 bool validMove(Sprite* pmoving,Vector2i oldCoord, Vector2i newCoord) { // decide if move is valid
     // helper variables for deciding if move is valid
@@ -66,25 +75,48 @@ bool validMove(Sprite* pmoving,Vector2i oldCoord, Vector2i newCoord) { // decide
 
     // piece specific calculations
     bool validDir = 0; // is the piece being moved as it should
-    bool isHop = 0;// is there a piece between the old and new position (i.e. is piece "hopping" over another)
+    bool isHop = 0; // is there a piece between the old and new position (i.e. is piece "hopping" over another)
     if (attackType == "R" || attackType == "r") { // rook moving
         validDir = !isDiagonal;
-         
+        
+        // look in direction of movement if valid
+        if (validDir) {
+            // check if it hopped over something
+
+            // check if it is now checking
+        }
     }
     else if (attackType == "B" || attackType == "b") { // bishop moving
         validDir = isDiagonal;
     }
+    else if (attackType == "Q" || attackType == "q") { // queen moving
+        validDir = 1;
+    }
+    else if (attackType == "K" || attackType == "k") { // king moving
+        validDir = 1;
+    }
+    else if (attackType == "N" || attackType == "n") { // knight moving
+        validDir = 1;
+    }
+    else if (attackType == "P" || attackType == "p") { // pawn moving
+        validDir = 1;
+    }
+
+    //check if king being mated
     
     // decide if it is a valid move
+    bool valid = 0;
     if (capturePiece == 0) { // moved to empty square
-        return validDir;
+        valid = validDir;
     }
     else if (capturePiece != 0) { // attacking a piece
         // piece must be moving correctly and be attacking the opposite colour (not both uppercase or both lowercase in ptypes array)
-        return validDir && (isupper(attackType[0]) ^ isupper(captureType[0]));
+        bool isKing = (captureType == "K") || (captureType == "k");
+        valid = validDir && (isupper(attackType[0]) ^ isupper(captureType[0])) && !isKing;
+        
     }
     
-    return 0;
+    return valid;
 }
 
 
