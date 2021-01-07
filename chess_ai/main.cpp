@@ -79,25 +79,32 @@ bool legalSquare(std::string moveType, std::string squareType, Vector2i coord) {
 }
 
 void updateLegalMoves() { // update legal moves for the moving player (uppercase) and defended ones
-    
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
-            printf("inspecting coord (%i,%i)", i, j);
             // reset legalMoves and defended arrays
             legalMoves[i][j] = std::vector<Vector2i>{};
             defended[i][j] = 0;
+        }
+    }
+
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            printf("inspecting coord (%i,%i)", i, j);
+            
             // calculate legal moves for piece on pboard[i][j] and append to legalMoves 2d array
             std::string pieceType = ptypes[i][j];
             std::string squareType;
-            if (pieceType == "R" || pieceType == "r") { // rook 
+            // always include coord of itself
+            legalMoves[i][j].push_back(Vector2i(i, j));
+            if (pieceType == "R" || pieceType == "r" || pieceType == "Q" || pieceType == "q") { // rook 
                 printf("rook moves\n");
-                for (int v = i; v >=0; v--) {
+                for (int v = i-1; v >=0; v--) {
                     squareType = ptypes[v][j];
                     printf("to %i,%i at ",v,j);
                     std::cout << squareType << std::endl;
                     if (legalSquare(pieceType, squareType, Vector2i(v, j))) {
-                        printf("legal square at (%i,%i)", v, j);
-                        legalMoves[v][j].push_back(Vector2i(v, j));
+                        printf("legal square at (%i,%i)\n", v, j);
+                        legalMoves[i][j].push_back(Vector2i(v, j));
                     }
                     else break;
                     
@@ -108,7 +115,7 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
                     std::cout << squareType << std::endl;
                     if (legalSquare(pieceType, ptypes[v][j], Vector2i(v, j))) {
                         printf("legal square at (%i,%i)", v, j);
-                        legalMoves[v][j].push_back(Vector2i(v, j));
+                        legalMoves[i][j].push_back(Vector2i(v, j));
                     }
                     else break;
                 }
@@ -118,7 +125,7 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
                     std::cout << squareType << std::endl;
                     if (legalSquare(pieceType, squareType, Vector2i(i, h))) {
                         printf("legal square at (%i,%i)", i, h); 
-                        legalMoves[i][h].push_back(Vector2i(i, h));
+                        legalMoves[i][j].push_back(Vector2i(i, h));
                     }
                     else break;
                 }
@@ -128,25 +135,53 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
                     std::cout << squareType << std::endl;
                     if (legalSquare(pieceType, squareType, Vector2i(i, h))) {
                         printf("legal square at (%i,%i)", i, h); 
-                        legalMoves[i][h].push_back(Vector2i(i, h));
+                        legalMoves[i][j].push_back(Vector2i(i, h));
                     }
                     else break;
                 }
             }
-            else if (pieceType == "B" || pieceType == "b") { // bishop
+            if (pieceType == "B" || pieceType == "b" || pieceType == "Q" || pieceType == "q") { // bishop
+                for (std::pair<int, int> v(i + 1, j + 1); v.first < 8 && v.second < 8; v.first++, v.second++) {
+                    squareType = ptypes[v.first][v.second];
+                    if (legalSquare(pieceType, squareType, Vector2i(v.first, v.second))) {
+                        legalMoves[i][j].push_back(Vector2i(v.first, v.second));
+                    }
+                    else break;
+
+                }
+                for (std::pair<int, int> v(i - 1, j - 1); v.first >= 0 && v.second >= 0; v.first--, v.second--) {
+                    squareType = ptypes[v.first][v.second];
+                    if (legalSquare(pieceType, squareType, Vector2i(v.first, v.second))) {
+                        legalMoves[i][j].push_back(Vector2i(v.first, v.second));
+                    }
+                    else break;
+
+                }
+                for (std::pair<int, int> v(i + 1, j - 1); v.first < 8 && v.second >=0; v.first++, v.second--) {
+                    squareType = ptypes[v.first][v.second];
+                    if (legalSquare(pieceType, squareType, Vector2i(v.first, v.second))) {
+                        legalMoves[i][j].push_back(Vector2i(v.first, v.second));
+                    }
+                    else break;
+
+                }
+                for (std::pair<int, int> v(i - 1, j + 1); v.first >=0 && v.second < 8; v.first--, v.second++) {
+                    squareType = ptypes[v.first][v.second];
+                    if (legalSquare(pieceType, squareType, Vector2i(v.first, v.second))) {
+                        legalMoves[i][j].push_back(Vector2i(v.first, v.second));
+                    }
+                    else break;
+
+                }
+            }
+            if (pieceType == "N" || pieceType == "n") { // knight
                 
             }
-            else if (pieceType == "Q" || pieceType == "q") { // queen
+            if (pieceType == "P" || pieceType == "p") { // pawn
                 
             }
-            else if (pieceType == "K" || pieceType == "k") { // king
-                
-            }
-            else if (pieceType == "N" || pieceType == "n") { // knight
-                
-            }
-            else if (pieceType == "P" || pieceType == "p") { // pawn
-                
+            if (pieceType == "K" || pieceType == "k") { // king
+
             }
 
         }
@@ -329,7 +364,7 @@ int main()
                 for (int i = 0; i < 8; i++) {
                     for (int j = 0; j < 8; j++) {
                         for (int k = 0; k < legalMoves[i][j].size(); k++) {
-                            std::cout << ptypes[i][j]<< "(" << legalMoves[i][j][k].x << ", " << legalMoves[i][j][k].y << ")" << defended[i][j];
+                            std::cout << ptypes[i][j]<< "(" << legalMoves[i][j][k].x << ", " << legalMoves[i][j][k].y << ")" << defended[i][j] << std::endl;
                         }
                         std::cout << std::endl;
                     }
