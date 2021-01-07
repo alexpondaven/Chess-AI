@@ -7,7 +7,9 @@ using namespace sf;
 
 Sprite p[32];
 Sprite* pboard[8][8] = { 0 }; // 2d array of addresses for each piece to know each location
-std::string ptypes[8][8] = { "" }; // corresponding type of sprite in pboard
+std::string ptypes[8][8] = { "" }; // corresponding type of piece in pboard
+std::vector<Vector2i> legalMoves[8][8]; // each piece has a vector of legal moves
+bool defended[8][8] = { 0 };
 
 // numbers on board represent offset on figure
 int aboard[8][8] = {{-5,-4,-3,-2,-1,-3,-4,-5},
@@ -57,11 +59,99 @@ RectangleShape boundingBox(Sprite s) {
 // update array of pieces that are protected (and if king is in check)
 // could actually make a valid moves list for each piece (thinking may be needed for hidden checks (and any ai))
 // for each piece= a list of all possible moves 
-// for each Sprite* need 
 
+// remember legal moves has to include staying still
 
 // need to see what is defended (so king can't attack), if king is in check, if move is valid, if move hopped over a piece
 // defending only happens if king is attacking (so could just call isDefended function on capturePiece to determine if it is defended
+
+bool legalSquare(std::string moveType, std::string squareType, Vector2i coord) {
+    if (squareType == "") { // empty square
+        return 1;
+    }
+    else if (isupper(moveType[0]) ^ isupper(squareType[0])) { // if piece moving to square with piece of opposite colour it is allowed
+        if (!(squareType == "K" || squareType == "k")) return 1; // legal move only if piece is not a king
+    }
+    else { // piece is of same colour so it piece is defended
+        defended[coord.x][coord.y] = 1;
+    }
+    return 0;
+}
+
+void updateLegalMoves() { // update legal moves for the moving player (uppercase) and defended ones
+    
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            printf("inspecting coord (%i,%i)", i, j);
+            // reset legalMoves and defended arrays
+            legalMoves[i][j] = std::vector<Vector2i>{};
+            defended[i][j] = 0;
+            // calculate legal moves for piece on pboard[i][j] and append to legalMoves 2d array
+            std::string pieceType = ptypes[i][j];
+            std::string squareType;
+            if (pieceType == "R" || pieceType == "r") { // rook 
+                printf("rook moves\n");
+                for (int v = i; v >=0; v--) {
+                    squareType = ptypes[v][j];
+                    printf("to %i,%i at ",v,j);
+                    std::cout << squareType << std::endl;
+                    if (legalSquare(pieceType, squareType, Vector2i(v, j))) {
+                        printf("legal square at (%i,%i)", v, j);
+                        legalMoves[v][j].push_back(Vector2i(v, j));
+                    }
+                    else break;
+                    
+                }
+                for (int v = i+1; v <8; v++) {
+                    squareType = ptypes[v][j];
+                    printf("to %i,%i at ", v, j);
+                    std::cout << squareType << std::endl;
+                    if (legalSquare(pieceType, ptypes[v][j], Vector2i(v, j))) {
+                        printf("legal square at (%i,%i)", v, j);
+                        legalMoves[v][j].push_back(Vector2i(v, j));
+                    }
+                    else break;
+                }
+                for (int h = j-1; h >= 0; h--) {
+                    squareType = ptypes[i][h];
+                    printf("to %i,%i at ", i, h);
+                    std::cout << squareType << std::endl;
+                    if (legalSquare(pieceType, squareType, Vector2i(i, h))) {
+                        printf("legal square at (%i,%i)", i, h); 
+                        legalMoves[i][h].push_back(Vector2i(i, h));
+                    }
+                    else break;
+                }
+                for (int h = j+1; h <8; h++) {
+                    squareType = ptypes[i][h];
+                    printf("to %i,%i at ", i, h);
+                    std::cout << squareType << std::endl;
+                    if (legalSquare(pieceType, squareType, Vector2i(i, h))) {
+                        printf("legal square at (%i,%i)", i, h); 
+                        legalMoves[i][h].push_back(Vector2i(i, h));
+                    }
+                    else break;
+                }
+            }
+            else if (pieceType == "B" || pieceType == "b") { // bishop
+                
+            }
+            else if (pieceType == "Q" || pieceType == "q") { // queen
+                
+            }
+            else if (pieceType == "K" || pieceType == "k") { // king
+                
+            }
+            else if (pieceType == "N" || pieceType == "n") { // knight
+                
+            }
+            else if (pieceType == "P" || pieceType == "p") { // pawn
+                
+            }
+
+        }
+    }
+}
 
 bool validMove(Sprite* pmoving,Vector2i oldCoord, Vector2i newCoord) { // decide if move is valid
     // helper variables for deciding if move is valid
@@ -102,21 +192,21 @@ bool validMove(Sprite* pmoving,Vector2i oldCoord, Vector2i newCoord) { // decide
         validDir = 1;
     }
 
-    //check if king being mated
-    
-    // decide if it is a valid move
-    bool valid = 0;
-    if (capturePiece == 0) { // moved to empty square
-        valid = validDir;
-    }
-    else if (capturePiece != 0) { // attacking a piece
-        // piece must be moving correctly and be attacking the opposite colour (not both uppercase or both lowercase in ptypes array)
-        bool isKing = (captureType == "K") || (captureType == "k");
-        valid = validDir && (isupper(attackType[0]) ^ isupper(captureType[0])) && !isKing;
-        
-    }
-    
-    return valid;
+//check if king being mated
+
+// decide if it is a valid move
+bool valid = 0;
+if (capturePiece == 0) { // moved to empty square
+    valid = validDir;
+}
+else if (capturePiece != 0) { // attacking a piece
+    // piece must be moving correctly and be attacking the opposite colour (not both uppercase or both lowercase in ptypes array)
+    bool isKing = (captureType == "K") || (captureType == "k");
+    valid = validDir && (isupper(attackType[0]) ^ isupper(captureType[0])) && !isKing;
+
+}
+
+return valid;
 }
 
 
@@ -132,7 +222,7 @@ int main()
 
     // render window
     RenderWindow window(VideoMode(width, height), "Chess", Style::Close | Style::Resize);
-    
+
     // Adding images and sprites
     Texture pieces, boardi;
     pieces.loadFromFile("images/pieces2.png");
@@ -149,13 +239,13 @@ int main()
     int sh = textureSize.y / 2;
     // pass in window width/height and sprite width/height
     //pieces.setSmooth(true); // can't tell if this helps
-    for (int i=0;i<32;i++) p[i].setTexture(pieces);
+    for (int i = 0; i < 32; i++) p[i].setTexture(pieces);
     loadPos((float)sw, (float)sh, psize, scaled);
-    
-   
+
+
 
     bool moving = 0; // is piece being dragged
-    Sprite* pmoving=0; // address of piece being moved
+    Sprite* pmoving = 0; // address of piece being moved
     //float offx = 0, offy = 0;
 
     while (window.isOpen())
@@ -165,12 +255,12 @@ int main()
         Event e;
         while (window.pollEvent(e))
         {
-            if (e.type == Event::Closed){
+            if (e.type == Event::Closed) {
                 window.close();
             }
 
             // event of mouse button being pressed
-            if (e.type == Event::MouseButtonPressed && e.key.code == Mouse::Left && moving==0)
+            if (e.type == Event::MouseButtonPressed && e.key.code == Mouse::Left && moving == 0)
             {
                 // Update pmoving with address to piece that is being dragged
                 Vector2i clickCoord = Vector2i(int(mousePos.x / psize), int(mousePos.y / psize));
@@ -181,22 +271,23 @@ int main()
                     //printf("moving");
                     moving = 1;
                     oldCoord = clickCoord; // store previous position of piece (coord from which it was picked up)
-                    
+
                     // remove piece from board
                     pboard[oldCoord.x][oldCoord.y] = 0;
 
 
                     //offx = mousePos.x - piece.getPosition().x;
                     //offy = mousePos.y - piece.getPosition().y;
-                }  
+                }
             }
             // event of mouse button being released
-            if (e.type == Event::MouseButtonReleased && e.key.code == Mouse::Left && (pmoving !=0)) {
+            if (e.type == Event::MouseButtonReleased && e.key.code == Mouse::Left && (pmoving != 0)) {
                 //printf("mouserelease\n");
                 moving = 0;
                 Vector2f pos = pmoving->getPosition();
                 Vector2f newPos = Vector2f(float(int(pos.x / psize) + 0.5) * psize, float(int(pos.y / psize) + 0.5) * psize);
                 newCoord = Vector2i(int(pos.x / psize), int(pos.y / psize));
+
 
                 // only move to piece to new coordinate if newCoord is in window
                 bool outOfBounds = (mousePos.x >= window.getSize().x) || (mousePos.x < 0) || (mousePos.y >= window.getSize().y) || (mousePos.y < 0); // outside window
@@ -232,12 +323,24 @@ int main()
 
                 }
                 pmoving = 0; // reset pmoving to 0
+
+                // legal moves table
+                updateLegalMoves();
+                for (int i = 0; i < 8; i++) {
+                    for (int j = 0; j < 8; j++) {
+                        for (int k = 0; k < legalMoves[i][j].size(); k++) {
+                            std::cout << ptypes[i][j]<< "(" << legalMoves[i][j][k].x << ", " << legalMoves[i][j][k].y << ")" << defended[i][j];
+                        }
+                        std::cout << std::endl;
+                    }
+                }
+                
             }
         }
 
-        if (moving) {
+        if (moving) { // piece follows cursor if being dragged
             // use offx or offy to drag and keep relative position of cursor to piece
-            //piece.setPosition(mousePos.x-offx, mousePos.y-offy);
+            //piece->setPosition(mousePos.x-offx, mousePos.y-offy);
             pmoving->setPosition(Vector2f(mousePos));
 
         }
