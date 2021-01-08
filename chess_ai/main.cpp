@@ -11,7 +11,11 @@ std::string ptypes[8][8] = { "" }; // corresponding type of piece in pboard
 std::vector<Vector2i> legalMoves[8][8]; // each piece has a vector of legal moves
 bool defended[8][8] = { 0 };
 
-// numbers on board represent offset on figure
+// Special variables for special moves e.g. checking, castling and en passant
+//king variables: store if each king is in check or if one of them (or the rook) has moved from original position 
+
+
+// numbers on board represent offset on figure (used for extracting pieces from image)
 int aboard[8][8] = {{-5,-4,-3,-2,-1,-3,-4,-5},
                     {-6,-6,-6,-6,-6,-6,-6,-6},
                     { 0, 0, 0, 0, 0, 0, 0, 0},
@@ -65,15 +69,42 @@ RectangleShape boundingBox(Sprite s) {
 // need to see what is defended (so king can't attack), if king is in check, if move is valid, if move hopped over a piece
 // defending only happens if king is attacking (so could just call isDefended function on capturePiece to determine if it is defended
 
-bool legalSquare(std::string moveType, std::string squareType, Vector2i coord) {
+int legalSquare(std::string moveType, std::string squareType, Vector2i coord) {
     if (squareType == "") { // empty square
         return 1;
     }
     else if (isupper(moveType[0]) ^ isupper(squareType[0])) { // if piece moving to square with piece of opposite colour it is allowed
-        if (!(squareType == "K" || squareType == "k")) return 1; // legal move only if piece is not a king
+        if (!(squareType == "K" || squareType == "k")) {// legal move only if piece is not a king
+            return 2; 
+        }
+        else { // king is in check
+            if (isupper(squareType[0])) { // K in check
+
+            }
+            else { // k in check
+
+            }
+        }
     }
-    else { // piece is of same colour so it piece is defended
+    else { // piece is of same colour so piece is defended
         defended[coord.x][coord.y] = 1;
+    }
+    return 0;
+}
+
+bool legalPawn(std::string moveType, std::string squareType, Vector2i coord, std::string direction) {
+    // update 
+
+    if (squareType == "") { // empty square
+        // check if pawn below this new position has just moved 2 forward
+        bool en_passant = 0;
+        return (direction != "d" || en_passant); // cannot move diagonally to empty square (IF NOT EN PASSANT)
+    }
+    else if (isupper(moveType[0]) ^ isupper(squareType[0])) { // if piece moving to square with piece of opposite colour it is allowed
+        return (direction == "d"); // can only capture diagonally
+    }
+    else { // piece is of same colour so piece is defended (but only if it is diagonal)
+        if (direction=="d") defended[coord.x][coord.y] = 1;
     }
     return 0;
 }
@@ -94,6 +125,7 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
             // calculate legal moves for piece on pboard[i][j] and append to legalMoves 2d array
             std::string pieceType = ptypes[i][j];
             std::string squareType;
+            int legal = 0;
             // always include coord of itself
             legalMoves[i][j].push_back(Vector2i(i, j));
             if (pieceType == "R" || pieceType == "r" || pieceType == "Q" || pieceType == "q") { // rook 
@@ -102,9 +134,11 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
                     squareType = ptypes[v][j];
                     printf("to %i,%i at ",v,j);
                     std::cout << squareType << std::endl;
-                    if (legalSquare(pieceType, squareType, Vector2i(v, j))) {
+                    legal = legalSquare(pieceType, squareType, Vector2i(v, j));
+                    if (legal) {
                         printf("legal square at (%i,%i)\n", v, j);
                         legalMoves[i][j].push_back(Vector2i(v, j));
+                        if (legal == 2) break; // it was a capture
                     }
                     else break;
                     
@@ -113,9 +147,11 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
                     squareType = ptypes[v][j];
                     printf("to %i,%i at ", v, j);
                     std::cout << squareType << std::endl;
-                    if (legalSquare(pieceType, ptypes[v][j], Vector2i(v, j))) {
+                    legal = legalSquare(pieceType, squareType, Vector2i(v, j));
+                    if (legal) {
                         printf("legal square at (%i,%i)", v, j);
                         legalMoves[i][j].push_back(Vector2i(v, j));
+                        if (legal == 2) break; // it was a capture
                     }
                     else break;
                 }
@@ -123,9 +159,11 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
                     squareType = ptypes[i][h];
                     printf("to %i,%i at ", i, h);
                     std::cout << squareType << std::endl;
-                    if (legalSquare(pieceType, squareType, Vector2i(i, h))) {
+                    legal = legalSquare(pieceType, squareType, Vector2i(i, h));
+                    if (legal) {
                         printf("legal square at (%i,%i)", i, h); 
                         legalMoves[i][j].push_back(Vector2i(i, h));
+                        if (legal == 2) break; // it was a capture
                     }
                     else break;
                 }
@@ -133,9 +171,11 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
                     squareType = ptypes[i][h];
                     printf("to %i,%i at ", i, h);
                     std::cout << squareType << std::endl;
-                    if (legalSquare(pieceType, squareType, Vector2i(i, h))) {
+                    legal = legalSquare(pieceType, squareType, Vector2i(i, h));
+                    if (legal) {
                         printf("legal square at (%i,%i)", i, h); 
                         legalMoves[i][j].push_back(Vector2i(i, h));
+                        if (legal == 2) break; // it was a capture
                     }
                     else break;
                 }
@@ -143,42 +183,103 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
             if (pieceType == "B" || pieceType == "b" || pieceType == "Q" || pieceType == "q") { // bishop
                 for (std::pair<int, int> v(i + 1, j + 1); v.first < 8 && v.second < 8; v.first++, v.second++) {
                     squareType = ptypes[v.first][v.second];
-                    if (legalSquare(pieceType, squareType, Vector2i(v.first, v.second))) {
+                    legal = legalSquare(pieceType, squareType, Vector2i(v.first, v.second));
+                    if (legal) {
                         legalMoves[i][j].push_back(Vector2i(v.first, v.second));
+                        if (legal == 2) break; // it was a capture
                     }
                     else break;
 
                 }
                 for (std::pair<int, int> v(i - 1, j - 1); v.first >= 0 && v.second >= 0; v.first--, v.second--) {
                     squareType = ptypes[v.first][v.second];
-                    if (legalSquare(pieceType, squareType, Vector2i(v.first, v.second))) {
+                    legal = legalSquare(pieceType, squareType, Vector2i(v.first, v.second));
+                    if (legal) {
                         legalMoves[i][j].push_back(Vector2i(v.first, v.second));
+                        if (legal == 2) break; // it was a capture
                     }
                     else break;
 
                 }
                 for (std::pair<int, int> v(i + 1, j - 1); v.first < 8 && v.second >=0; v.first++, v.second--) {
                     squareType = ptypes[v.first][v.second];
-                    if (legalSquare(pieceType, squareType, Vector2i(v.first, v.second))) {
+                    legal = legalSquare(pieceType, squareType, Vector2i(v.first, v.second));
+                    if (legal) {
                         legalMoves[i][j].push_back(Vector2i(v.first, v.second));
+                        if (legal == 2) break; // it was a capture
                     }
                     else break;
 
                 }
                 for (std::pair<int, int> v(i - 1, j + 1); v.first >=0 && v.second < 8; v.first--, v.second++) {
                     squareType = ptypes[v.first][v.second];
-                    if (legalSquare(pieceType, squareType, Vector2i(v.first, v.second))) {
+                    legal = legalSquare(pieceType, squareType, Vector2i(v.first, v.second));
+                    if (legal) {
                         legalMoves[i][j].push_back(Vector2i(v.first, v.second));
+                        if (legal == 2) break; // it was a capture
                     }
                     else break;
 
                 }
             }
             if (pieceType == "N" || pieceType == "n") { // knight
-                
+                // create list of 8 possible moves
+                std::vector<Vector2i> knightmoves;
+                if (i + 2 < 8 && j + 1 < 8) knightmoves.push_back(Vector2i(i + 2, j + 1));
+                if (i + 2 < 8 && j - 1 >= 0) knightmoves.push_back(Vector2i(i + 2, j - 1));
+                if (i + 1 < 8 && j + 2 < 8) knightmoves.push_back(Vector2i(i + 1, j + 2));
+                if (i - 1 >= 0 && j + 2 < 8) knightmoves.push_back(Vector2i(i - 1, j + 2));
+                if (i - 2 >= 0 && j + 1 < 8) knightmoves.push_back(Vector2i(i - 2, j + 1));
+                if (i - 2 >= 0 && j - 1 >= 0) knightmoves.push_back(Vector2i(i - 2, j - 1));
+                if (i + 1 < 8 && j - 2 >= 0) knightmoves.push_back(Vector2i(i + 1, j - 2));
+                if (i - 1 >= 0 && j - 2 >= 0) knightmoves.push_back(Vector2i(i - 1, j - 2));
+
+                for (int n = 0; n < knightmoves.size(); n++) {
+                    squareType = ptypes[knightmoves[n].x][knightmoves[n].y];
+                    if (legalSquare(pieceType, squareType, knightmoves[n])) legalMoves[i][j].push_back(knightmoves[n]);
+                }
+
             }
-            if (pieceType == "P" || pieceType == "p") { // pawn
-                
+            if (pieceType == "P") { // player pawn
+                // can move up one or diagonally each time
+                // can move up 2 if it is in it's original position (or just at j==1 for 'p' and j==6 for 'P')
+                // en passant: pawn can take diagonally if opposing pawn is to it's left/right and has just moved up by 2
+                if (j - 1 >= 0) {
+                    squareType = ptypes[i][j - 1];
+                    if (legalPawn(pieceType, squareType, Vector2i(i, j - 1), "f")) legalMoves[i][j].push_back(Vector2i(i, j - 1));
+
+                    if (i - 1 >= 0) {
+                        squareType = ptypes[i - 1][j - 1];
+                        if (legalPawn(pieceType, squareType, Vector2i(i - 1, j - 1), "d")) legalMoves[i][j].push_back(Vector2i(i - 1, j - 1));
+                    }
+                    if (i + 1 < 8) {
+                        squareType = ptypes[i + 1][j - 1];
+                        if (legalPawn(pieceType, squareType, Vector2i(i + 1, j - 1), "d")) legalMoves[i][j].push_back(Vector2i(i + 1, j - 1));
+                    }
+                }
+                if (j == 6) { // pawn in initial position and can move 2 forward
+                    squareType = ptypes[i][j - 2];
+                    if (legalPawn(pieceType, squareType, Vector2i(i, j - 2), "ff")) legalMoves[i][j].push_back(Vector2i(i, j - 2));
+                }
+            }
+            if (pieceType == "p"){ // opponent pawn
+                if (j + 1 < 8) {
+                    squareType = ptypes[i][j+1];
+                    if (legalPawn(pieceType, squareType, Vector2i(i,j+1),"f")) legalMoves[i][j].push_back(Vector2i(i, j + 1));
+
+                    if (i - 1 >= 0) {
+                        squareType = ptypes[i-1][j + 1];
+                        if (legalPawn(pieceType, squareType, Vector2i(i-1, j + 1), "d")) legalMoves[i][j].push_back(Vector2i(i-1, j + 1));
+                    }
+                    if (i + 1 < 8) {
+                        squareType = ptypes[i + 1][j + 1];
+                        if (legalPawn(pieceType, squareType, Vector2i(i + 1, j + 1),"d")) legalMoves[i][j].push_back(Vector2i(i + 1, j + 1));
+                    }
+                }
+                if (j==1) { // pawn in initial position and can move 2 forward
+                    squareType = ptypes[i][j + 2];
+                    if (legalPawn(pieceType, squareType, Vector2i(i, j + 2), "ff")) legalMoves[i][j].push_back(Vector2i(i, j + 2));
+                }
             }
             if (pieceType == "K" || pieceType == "k") { // king
 
@@ -339,7 +440,7 @@ int main()
                     pboard[oldCoord.x][oldCoord.y] = pmoving; 
                 }
                 else { // move piece to new square
-                    // make decision about 
+                    
                     //remove old piece on button release coordinate and add new piece to pboard
                     if (pboard[newCoord.x][newCoord.y] != 0) { // remove what was on the new square (if not empty)
                         //printf("removing piece at x=%i, y=%i", newCoord.x, newCoord.y);
