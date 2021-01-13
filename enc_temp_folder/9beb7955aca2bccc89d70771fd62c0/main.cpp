@@ -15,10 +15,9 @@ bool defended[8][8] = { 0 };
 
 std::string coordToString(Vector2i coord) { // just converts from coordinate to letter number
     // if player is white
-    char col = coord.x + 97;
-    char row = 8 - coord.y;
 
-    return { col, row };
+
+    return "";
 }
 
 // Special variables for special moves e.g. checking, castling and en passant
