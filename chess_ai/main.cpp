@@ -80,7 +80,11 @@ RectangleShape boundingBox(Sprite s) {
 // defending only happens if king is attacking (so could just call isDefended function on capturePiece to determine if it is defended
 
 int legalSquare(std::string moveType, std::string squareType, Vector2i coord) {
+    if (moveType == "K" || moveType == "k") { // check if king is attacking a defended position
+        if (defended[coord.x][coord.y] == 1) return 0; // king can't move to defended position
+    }
     if (squareType == "") { // empty square
+        defended[coord.x][coord.y] = 1; // empty square is defended
         return 1;
     }
     else if (isupper(moveType[0]) ^ isupper(squareType[0])) { // if piece moving to square with piece of opposite colour it is allowed
@@ -106,6 +110,7 @@ bool legalPawn(std::string moveType, std::string squareType, Vector2i coord, std
     // update 
 
     if (squareType == "") { // empty square
+        defended[coord.x][coord.y] = 1; // empty square defended
         // check if pawn below this new position has just moved 2 forward
         bool en_passant = 0;
         return (direction != "d" || en_passant); // cannot move diagonally to empty square (IF NOT EN PASSANT)
@@ -120,14 +125,20 @@ bool legalPawn(std::string moveType, std::string squareType, Vector2i coord, std
 }
 
 void updateLegalMoves() { // update legal moves for the moving player (uppercase) and defended ones
+    // calculate king positions last
+    std::pair<int, int> K;
+    std::pair<int, int> k;
+
+    // reset legalMoves and defended arrays
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
-            // reset legalMoves and defended arrays
+            
             legalMoves[i][j] = std::vector<Vector2i>{};
             defended[i][j] = 0;
         }
     }
 
+    // Calculate legal moves for all pieces (except for kings)
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             printf("inspecting coord (%i,%i)", i, j);
@@ -291,10 +302,28 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
                     if (legalPawn(pieceType, squareType, Vector2i(i, j + 2), "ff")) legalMoves[i][j].push_back(Vector2i(i, j + 2));
                 }
             }
-            if (pieceType == "K" || pieceType == "k") { // king
+            if (pieceType == "K") { // king
+                K = { i,j };
 
             }
+            if (pieceType == "k") {
+                k = { i,j };
+            }
+        }
+    }
 
+    // calculate moves for kings last (as defended squares must first be calculated)
+
+    // king can move one step in all directions as long as piece is not defended
+    for (int i = -1; i < 3; i++) {
+        if (K.first + i < 0 || K.first + i >= 8 || k.first + i < 0 || K.first + i>8) break;
+        for (int j = -1; j < 3; j++) {
+            if (K.second + j < 0 || K.second + j >= 8 || k.second + j < 0 || k.second + j>8) break;
+            Vector2i Knpos(K.first + i, K.second + j);
+            if (legalSquare("K", ptypes[Knpos.x][Knpos.y], Knpos)) legalMoves[K.first][K.second].push_back(Knpos);
+
+            Vector2i knpos(k.first + i, k.second + j);
+            if (legalSquare("k", ptypes[knpos.x][knpos.y], knpos)) legalMoves[k.first][k.second].push_back(knpos);
         }
     }
 }
@@ -307,52 +336,61 @@ bool validMove(Sprite* pmoving,Vector2i oldCoord, Vector2i newCoord) { // decide
 
     bool isDiagonal = (abs(oldCoord.x - newCoord.x) == abs(oldCoord.y - newCoord.y)); // diagonal move if x and y offset is same
     
-    
-
-    // piece specific calculations
-    bool validDir = 0; // is the piece being moved as it should
-    bool isHop = 0; // is there a piece between the old and new position (i.e. is piece "hopping" over another)
-    if (attackType == "R" || attackType == "r") { // rook moving
-        validDir = !isDiagonal;
-        
-        // look in direction of movement if valid
-        if (validDir) {
-            // check if it hopped over something
-
-            // check if it is now checking
+    // current implementation of finding valid move based on legalMoves 2d array
+    bool valid = 0;
+    // loop over valid moves for piece being moved and check newCoord is in the new 
+    for (int i = 0; i < legalMoves[oldCoord.x][oldCoord.y].size();i++) {
+        if (legalMoves[oldCoord.x][oldCoord.y][i] == newCoord) {
+            valid = 1;
         }
     }
-    else if (attackType == "B" || attackType == "b") { // bishop moving
-        validDir = isDiagonal;
-    }
-    else if (attackType == "Q" || attackType == "q") { // queen moving
-        validDir = 1;
-    }
-    else if (attackType == "K" || attackType == "k") { // king moving
-        validDir = 1;
-    }
-    else if (attackType == "N" || attackType == "n") { // knight moving
-        validDir = 1;
-    }
-    else if (attackType == "P" || attackType == "p") { // pawn moving
-        validDir = 1;
-    }
 
-//check if king being mated
+    
+    // calculating valid for test (previous version)
+//    // piece specific calculations
+//    bool validDir = 0; // is the piece being moved as it should
+//    bool isHop = 0; // is there a piece between the old and new position (i.e. is piece "hopping" over another)
+//    if (attackType == "R" || attackType == "r") { // rook moving
+//        validDir = !isDiagonal;
+//        
+//        // look in direction of movement if valid
+//        if (validDir) {
+//            // check if it hopped over something
+//
+//            // check if it is now checking
+//        }
+//    }
+//    else if (attackType == "B" || attackType == "b") { // bishop moving
+//        validDir = isDiagonal;
+//    }
+//    else if (attackType == "Q" || attackType == "q") { // queen moving
+//        validDir = 1;
+//    }
+//    else if (attackType == "K" || attackType == "k") { // king moving
+//        validDir = 1;
+//    }
+//    else if (attackType == "N" || attackType == "n") { // knight moving
+//        validDir = 1;
+//    }
+//    else if (attackType == "P" || attackType == "p") { // pawn moving
+//        validDir = 1;
+//    }
+//
+////check if king being mated
+//
+//// decide if it is a valid move
+//bool valid = 0;
+//if (capturePiece == 0) { // moved to empty square
+//    valid = validDir;
+//}
+//else if (capturePiece != 0) { // attacking a piece
+//    // piece must be moving correctly and be attacking the opposite colour (not both uppercase or both lowercase in ptypes array)
+//    bool isKing = (captureType == "K") || (captureType == "k");
+//    valid = validDir && (isupper(attackType[0]) ^ isupper(captureType[0])) && !isKing;
+//
+//}
 
-// decide if it is a valid move
-bool valid = 0;
-if (capturePiece == 0) { // moved to empty square
-    valid = validDir;
-}
-else if (capturePiece != 0) { // attacking a piece
-    // piece must be moving correctly and be attacking the opposite colour (not both uppercase or both lowercase in ptypes array)
-    bool isKing = (captureType == "K") || (captureType == "k");
-    valid = validDir && (isupper(attackType[0]) ^ isupper(captureType[0])) && !isKing;
-
-}
-
-return valid;
+    return valid;
 }
 
 
