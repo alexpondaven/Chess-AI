@@ -9,7 +9,8 @@ Sprite p[32];
 Sprite* pboard[8][8] = { 0 }; // 2d array of addresses for each piece to know each location
 std::string ptypes[8][8] = { "" }; // corresponding type of piece in pboard
 std::vector<Vector2i> legalMoves[8][8]; // each piece has a vector of legal moves
-bool defended[8][8] = { 0 };
+bool pdefended[8][8] = { 0 }; // player defending squares
+bool odefended[8][8] = { 0 }; // opponent defending squares
 
 //maybe store legalMoves as vector of strings (in PGN format) like Qxe4 - make function to convert coord to string
 
@@ -80,11 +81,15 @@ RectangleShape boundingBox(Sprite s) {
 // defending only happens if king is attacking (so could just call isDefended function on capturePiece to determine if it is defended
 
 int legalSquare(std::string moveType, std::string squareType, Vector2i coord) {
-    if (moveType == "K" || moveType == "k") { // check if king is attacking a defended position
-        if (defended[coord.x][coord.y] == 1) return 0; // king can't move to defended position
+    if (moveType == "K") { // check if player king is attacking a defended position
+        if (odefended[coord.x][coord.y] == 1) return 0; // king can't move to opponent defended position
+    }
+    if (moveType == "k") { // check if opponent king is attacking a defended position
+        if (pdefended[coord.x][coord.y] == 1) return 0; // king can't move to player defended position
     }
     if (squareType == "") { // empty square
-        defended[coord.x][coord.y] = 1; // empty square is defended
+        if (isupper(moveType[0])) pdefended[coord.x][coord.y] = 1; // empty square is defended by player
+        else odefended[coord.x][coord.y] = 1;
         return 1;
     }
     else if (isupper(moveType[0]) ^ isupper(squareType[0])) { // if piece moving to square with piece of opposite colour it is allowed
@@ -101,7 +106,8 @@ int legalSquare(std::string moveType, std::string squareType, Vector2i coord) {
         }
     }
     else { // piece is of same colour so piece is defended
-        defended[coord.x][coord.y] = 1;
+        if (isupper(moveType[0])) pdefended[coord.x][coord.y] = 1;
+        else odefended[coord.x][coord.y] = 1;
     }
     return 0;
 }
@@ -110,7 +116,8 @@ bool legalPawn(std::string moveType, std::string squareType, Vector2i coord, std
     // update 
 
     if (squareType == "") { // empty square
-        defended[coord.x][coord.y] = 1; // empty square defended
+        if (isupper(moveType[0])) pdefended[coord.x][coord.y] = 1; // empty square is defended by player
+        else odefended[coord.x][coord.y] = 1;
         // check if pawn below this new position has just moved 2 forward
         bool en_passant = 0;
         return (direction != "d" || en_passant); // cannot move diagonally to empty square (IF NOT EN PASSANT)
@@ -119,7 +126,10 @@ bool legalPawn(std::string moveType, std::string squareType, Vector2i coord, std
         return (direction == "d"); // can only capture diagonally
     }
     else { // piece is of same colour so piece is defended (but only if it is diagonal)
-        if (direction=="d") defended[coord.x][coord.y] = 1;
+        if (direction == "d") {
+            if (isupper(moveType[0])) pdefended[coord.x][coord.y] = 1; // empty square is defended by player
+            else odefended[coord.x][coord.y] = 1;
+        }
     }
     return 0;
 }
@@ -134,7 +144,8 @@ void updateLegalMoves() { // update legal moves for the moving player (uppercase
         for (int j = 0; j < 8; j++) {
             
             legalMoves[i][j] = std::vector<Vector2i>{};
-            defended[i][j] = 0;
+            pdefended[i][j] = 0;
+            odefended[i][j] = 0;
         }
     }
 
@@ -513,7 +524,7 @@ int main()
                 for (int i = 0; i < 8; i++) {
                     for (int j = 0; j < 8; j++) {
                         for (int k = 0; k < legalMoves[i][j].size(); k++) {
-                            std::cout << ptypes[i][j]<< "(" << legalMoves[i][j][k].x << ", " << legalMoves[i][j][k].y << ")" << defended[i][j] << std::endl;
+                            std::cout << ptypes[i][j]<< "(" << legalMoves[i][j][k].x << ", " << legalMoves[i][j][k].y << ")"<< std::endl;
                         }
                         std::cout << std::endl;
                     }
